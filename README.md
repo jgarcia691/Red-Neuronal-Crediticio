@@ -38,14 +38,7 @@ machineLearning/
 ### Aspectos Técnicos
 - **Algoritmo**: Multi-Layer Perceptron (MLP) de una sola capa oculta
 - **Tipo de Problema**: Clasificación Binaria
-- **Framework**: scikit-learn
-- **Preprocesamiento**: Scikit-learn
 
-### Aspectos Éticos y de Negocio
-- **Interpretabilidad**: Análisis de importancia de características
-- **Sesgos**: Detección y mitigación de sesgos en datos
-- **Transparencia**: Explicabilidad de decisiones automatizadas
-- **Cumplimiento**: Adherencia a regulaciones financieras
 
 ## Instalación y Uso
 
@@ -54,35 +47,8 @@ machineLearning/
    pip install -r requirements.txt
    ```
 
-2. **Ejecutar el notebook principal**:
+2. **Ejecucion del modelo**
    ```bash
-   jupyter notebook notebooks/credit_approval_analysis.ipynb
+   python main.py
    ```
 
-3. **Entrenar el modelo**:
-   ```bash
-   python src/training.py
-   ```
-
-## Métricas de Evaluación
-
-- **Accuracy**: Precisión general del modelo
-- **Precision**: Precisión en predicción de malos pagadores
-- **Recall**: Sensibilidad en detección de malos pagadores
-- **F1-Score**: Media armónica de precisión y recall
-- **ROC-AUC**: Área bajo la curva ROC
-- **Confusion Matrix**: Matriz de confusión
-
-## Consideraciones Éticas
-
-- **Sesgos en Datos**: Análisis de representatividad demográfica
-- **Transparencia**: Explicabilidad de decisiones
-- **Justicia**: Evaluación de impacto en diferentes grupos
-- **Privacidad**: Protección de datos personales
-
-## Aplicaciones en la Industria
-
-- **Scoring Crediticio**: Evaluación automática de riesgo
-- **Aprobación de Préstamos**: Decisión automatizada
-- **Gestión de Riesgo**: Monitoreo continuo de cartera
-- **Compliance**: Cumplimiento regulatorio 
