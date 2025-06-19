@@ -1,0 +1,52 @@
+{
+  "model": {
+    "type": "basic",
+    "hidden_layers": [128, 64, 32],
+    "dropout_rate": 0.3,
+    "learning_rate": 0.001,
+    "l2_reg": 0.01,
+    "activation": "relu",
+    "output_activation": "sigmoid"
+  },
+  "training": {
+    "batch_size": 32,
+    "epochs": 100,
+    "validation_split": 0.2,
+    "early_stopping_patience": 10,
+    "reduce_lr_patience": 5,
+    "reduce_lr_factor": 0.5,
+    "min_lr": 1e-7
+  },
+  "data": {
+    "test_size": 0.2,
+    "random_state": 42,
+    "n_samples": 10000,
+    "categorical_columns": ["education", "employment_type", "home_ownership", "purpose"],
+    "numerical_columns": ["age", "income", "credit_score", "debt_to_income", "employment_length", "loan_amount", "loan_term"]
+  },
+  "evaluation": {
+    "threshold": 0.5,
+    "importance_method": "permutation",
+    "n_importance_samples": 1000,
+    "bias_analysis": true,
+    "sensitive_features": ["age", "education"]
+  },
+  "visualization": {
+    "style": "seaborn",
+    "figsize": [12, 8],
+    "dpi": 300,
+    "save_format": "png"
+  },
+  "paths": {
+    "data_dir": "data",
+    "models_dir": "models",
+    "logs_dir": "logs",
+    "notebooks_dir": "notebooks"
+  },
+  "ethical_considerations": {
+    "bias_monitoring": true,
+    "transparency": true,
+    "explainability": true,
+    "fairness_threshold": 0.1
+  }
+} 
