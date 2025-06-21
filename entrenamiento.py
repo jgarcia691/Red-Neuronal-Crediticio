@@ -37,4 +37,18 @@ def ejecutar_entrenamiento(n_samples=10000, epochs=50, use_kaggle_data=False):
     }
     trainer = CreditModelTrainer(config)
     trainer.train_model(X_train, y_train)
-    return trainer.model, processor, X_test, y_test, feature_names 
+
+    # Guardar objetos para evaluación posterior
+    import pickle
+    with open('modelo_entrenado.pkl', 'wb') as f:
+        pickle.dump(trainer.model, f)
+    with open('procesador.pkl', 'wb') as f:
+        pickle.dump(processor, f)
+    with open('X_test.pkl', 'wb') as f:
+        pickle.dump(X_test, f)
+    with open('y_test.pkl', 'wb') as f:
+        pickle.dump(y_test, f)
+    with open('feature_names.pkl', 'wb') as f:
+        pickle.dump(feature_names, f)
+
+    return trainer.model, processor, X_test, y_test, feature_names
