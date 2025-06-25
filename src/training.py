@@ -2,6 +2,7 @@
 Módulo de entrenamiento del modelo MLP para clasificación de crédito implementado desde cero.
 """
 
+# Importación de librerías necesarias para manejo de datos, visualización y métricas
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -12,6 +13,7 @@ import json
 from datetime import datetime
 from imblearn.over_sampling import SMOTE
 
+# Importa el procesador de datos y el modelo MLP definidos en otros módulos
 from src.data_processing import CreditDataProcessor
 from src.model import CreditMLP, create_model_from_config
 
@@ -21,6 +23,7 @@ class CreditModelTrainer:
     """
     
     def __init__(self, config=None):
+        # Inicializa la clase con una configuración (o usa la predeterminada)
         self.config = config or self._get_default_config()
         self.model = None
         self.processor = CreditDataProcessor()
@@ -28,6 +31,7 @@ class CreditModelTrainer:
         self.input_dim = None
     
     def _get_default_config(self):
+        # Configuración por defecto del modelo y entrenamiento
         return {
             'model': {
                 'hidden_layers': [15],
@@ -38,12 +42,13 @@ class CreditModelTrainer:
             },
             'training': {},
             'data': {
-                'test_size': 0.2,
+                'test_size': 0.4,
                 'random_state': 42
             }
         }
     
     def load_and_prepare_data(self, data_path=None):
+        # Carga y prepara los datos para entrenamiento y prueba
         print("Cargando y preparando datos...")
         if data_path and os.path.exists(data_path):
             data = self.processor.load_data(data_path)
@@ -59,6 +64,7 @@ class CreditModelTrainer:
         return X_train, X_test, y_train, y_test, feature_names
     
     def create_model(self):
+        # Crea el modelo MLP según la configuración
         print("Creando modelo...")
         model_config = self.config['model'].copy()
         model_config['input_dim'] = self.input_dim
@@ -68,6 +74,7 @@ class CreditModelTrainer:
         return self.model
     
     def train_model(self, X_train, y_train):
+        # Aplica SMOTE para balancear las clases y entrena el modelo
         print("Aplicando SMOTE para balancear las clases...")
         smote = SMOTE(random_state=42)
         X_res, y_res = smote.fit_resample(X_train, y_train)
@@ -81,6 +88,7 @@ class CreditModelTrainer:
         return self.model
     
     def evaluate_model(self, X_test, y_test):
+        # Evalúa el modelo en el conjunto de prueba y calcula métricas
         print("Evaluando modelo...")
         y_pred_proba = self.model.predict_proba(X_test)
         y_pred = (y_pred_proba > 0.5).astype(int)
@@ -152,6 +160,7 @@ class CreditModelTrainer:
             print("No hay historial de entrenamiento disponible.")
     
     def plot_evaluation_metrics(self, metrics, save_path=None):
+        # Grafica la matriz de confusión y la curva ROC
         fig, axes = plt.subplots(1, 2, figsize=(12, 5))
         cm = np.array(metrics['confusion_matrix'])
         sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=axes[0])
@@ -174,6 +183,7 @@ class CreditModelTrainer:
         plt.show()
     
     def save_results(self, metrics, save_dir='models'):
+        # Guarda las métricas y resultados en un archivo JSON
         os.makedirs(save_dir, exist_ok=True)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         metrics_path = os.path.join(save_dir, f'metrics_{timestamp}.json')
@@ -183,6 +193,7 @@ class CreditModelTrainer:
         print(f"- Métricas: {metrics_path}")
     
     def run_full_training(self, data_path=None):
+        # Ejecuta todo el flujo: carga datos, entrena, evalúa y guarda resultados
         print("=== INICIANDO ENTRENAMIENTO COMPLETO ===")
         X_train, X_test, y_train, y_test, feature_names = self.load_and_prepare_data(data_path)
         self.create_model()

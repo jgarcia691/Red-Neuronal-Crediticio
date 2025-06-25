@@ -3,6 +3,7 @@ Módulo de procesamiento de datos para el sistema de aprobación de crédito.
 Incluye funciones para cargar, limpiar, transformar y preparar los datos.
 """
 
+# Importa librerías para manejo de datos, preprocesamiento y utilidades
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -19,11 +20,12 @@ class CreditDataProcessor:
     """
     
     def __init__(self):
+        # Inicializa los objetos de escalado, codificación y completado de valores
         self.scaler = StandardScaler()
         self.label_encoders = {}
         self.imputer = SimpleImputer(strategy='median')
         self.feature_names = None
-        
+    
     def generate_sample_data(self, n_samples=10000):
         """
         Genera datos de ejemplo para demostración del sistema.
@@ -322,6 +324,8 @@ class CreditDataProcessor:
         
         return feature_analysis
 
+# Ejemplo de uso y prueba manual del procesador de datos
+
 def main():
     """
     Función principal para demostrar el procesamiento de datos.
@@ -353,4 +357,4 @@ def main():
     print(analysis['correlations'])
 
 if __name__ == "__main__":
-    main() 
+    main()

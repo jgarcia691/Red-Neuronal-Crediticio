@@ -3,6 +3,7 @@ Módulo de evaluación y análisis del modelo de clasificación de crédito.
 Incluye análisis de interpretabilidad, sesgos y métricas avanzadas.
 """
 
+# Importa librerías para métricas, visualización, interpretabilidad y warnings
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -25,26 +26,19 @@ class CreditModelEvaluator:
     
     def __init__(self, model, processor=None):
         """
-        Inicializa el evaluador del modelo.
-        
-        Args:
-            model: Modelo entrenado
-            processor: Procesador de datos
+        Inicializa el evaluador con el modelo entrenado y, opcionalmente, el procesador de datos.
+        Prepara los atributos para almacenar los datos de prueba y los nombres de las características.
         """
         self.model = model
         self.processor = processor
         self.feature_names = None
         self.X_test = None
         self.y_test = None
-        
+    
     def set_test_data(self, X_test, y_test, feature_names=None):
         """
-        Establece los datos de prueba para evaluación.
-        
-        Args:
-            X_test (np.array): Datos de prueba
-            y_test (np.array): Labels de prueba
-            feature_names (list): Nombres de las características
+        Guarda los datos de prueba (X_test, y_test) y los nombres de las características
+        para que el evaluador pueda usarlos en las métricas y análisis posteriores.
         """
         self.X_test = X_test
         self.y_test = y_test
@@ -52,13 +46,8 @@ class CreditModelEvaluator:
     
     def get_predictions(self, threshold=0.5):
         """
-        Obtiene las predicciones del modelo.
-        
-        Args:
-            threshold (float): Umbral para clasificación binaria
-            
-        Returns:
-            tuple: (y_pred_proba, y_pred)
+        Obtiene las probabilidades predichas por el modelo y las convierte en clases (0 o 1)
+        usando un umbral (threshold). Devuelve ambas: probabilidades y clases predichas.
         """
         y_pred_proba = self.model.predict(self.X_test)
         y_pred = (y_pred_proba > threshold).astype(int)
@@ -66,42 +55,26 @@ class CreditModelEvaluator:
     
     def comprehensive_metrics(self, threshold=0.5):
         """
-        Calcula métricas comprehensivas de evaluación.
-        
-        Args:
-            threshold (float): Umbral para clasificación binaria
-            
-        Returns:
-            dict: Diccionario con todas las métricas
+        Calcula un conjunto completo de métricas de evaluación (accuracy, precision, recall,
+        specificity, f1, ROC-AUC, PR-AUC, matriz de confusión, etc.) usando los datos de prueba
+        y el modelo. Devuelve un diccionario con todas las métricas.
         """
         y_pred_proba, y_pred = self.get_predictions(threshold)
-        
-        # Métricas básicas
         cm = confusion_matrix(self.y_test, y_pred)
         tn, fp, fn, tp = cm.ravel()
-        
-        # Métricas derivadas
         accuracy = (tp + tn) / (tp + tn + fp + fn)
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0
         specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
-        sensitivity = recall  # Sensitivity es lo mismo que recall
+        sensitivity = recall
         f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
-        
-        # Curvas ROC y PR
         fpr, tpr, _ = roc_curve(self.y_test, y_pred_proba)
         roc_auc = auc(fpr, tpr)
-        
         precision_curve, recall_curve, _ = precision_recall_curve(self.y_test, y_pred_proba)
         pr_auc = average_precision_score(self.y_test, y_pred_proba)
-        
-        # Métricas adicionales
         balanced_accuracy = (sensitivity + specificity) / 2
         g_mean = np.sqrt(sensitivity * specificity)
-        
-        # Reporte de clasificación
         class_report = classification_report(self.y_test, y_pred, output_dict=True)
-        
         metrics = {
             'basic': {
                 'accuracy': accuracy,
@@ -115,7 +88,7 @@ class CreditModelEvaluator:
             'advanced': {
                 'roc_auc': roc_auc,
                 'pr_auc': pr_auc,
-                'sensitivity': recall,  # Same as recall
+                'sensitivity': recall,
                 'false_positive_rate': fpr,
                 'true_positive_rate': tpr,
                 'precision_curve': precision_curve,
@@ -128,16 +101,13 @@ class CreditModelEvaluator:
                 'predictions': y_pred
             }
         }
-        
         return metrics
     
     def plot_comprehensive_evaluation(self, metrics, save_path=None):
         """
-        Genera gráficos comprehensivos de evaluación.
-        
-        Args:
-            metrics (dict): Métricas calculadas
-            save_path (str): Ruta para guardar los gráficos
+        Genera varios gráficos para visualizar el desempeño del modelo: matriz de confusión,
+        curva ROC, curva Precision-Recall, barras de métricas, distribución de probabilidades
+        y comparación de métricas clave. Puede guardar los gráficos si se indica una ruta.
         """
         fig, axes = plt.subplots(2, 3, figsize=(18, 12))
         
@@ -225,17 +195,11 @@ class CreditModelEvaluator:
     
     def analyze_feature_importance(self, method='shap', n_samples=1000):
         """
-        Analiza la importancia de las características.
-        
-        Args:
-            method (str): Método de análisis ('shap', 'permutation', 'gradient')
-            n_samples (int): Número de muestras para análisis
-            
-        Returns:
-            dict: Resultados del análisis
+        Analiza la importancia de las características usando el método especificado
+        ('shap', 'permutation' o 'gradient'). Llama a la función interna correspondiente
+        y devuelve los resultados del análisis.
         """
         print(f"Analizando importancia de características usando {method}...")
-        
         if method == 'shap':
             return self._shap_analysis(n_samples)
         elif method == 'permutation':
@@ -247,13 +211,9 @@ class CreditModelEvaluator:
     
     def _shap_analysis(self, n_samples):
         """
-        Análisis de importancia usando SHAP.
-        
-        Args:
-            n_samples (int): Número de muestras
-            
-        Returns:
-            dict: Resultados del análisis SHAP
+        Realiza el análisis de importancia de características usando SHAP, que explica el impacto
+        de cada variable en la predicción del modelo. Devuelve un DataFrame con la importancia
+        de cada característica.
         """
         try:
             # Seleccionar muestra para análisis
@@ -275,90 +235,49 @@ class CreditModelEvaluator:
                 'feature': self.feature_names,
                 'importance': feature_importance
             }).sort_values('importance', ascending=False)
-            
             return {
                 'method': 'shap',
                 'shap_values': shap_values,
                 'feature_importance': importance_df,
                 'explainer': explainer
             }
-            
         except Exception as e:
             print(f"Error en análisis SHAP: {e}")
             return None
     
     def _permutation_importance_analysis(self):
         """
-        Análisis de importancia por permutación.
-        
-        Returns:
-            dict: Resultados del análisis
+        Calcula la importancia de las características usando el método de permutación de scikit-learn,
+        que mide cuánto afecta la métrica de desempeño al permutar cada variable. Devuelve un DataFrame
+        con la importancia de cada característica.
         """
         # Usar scikit-learn permutation importance
         result = permutation_importance(
             self.model, self.X_test, self.y_test,
             n_repeats=10, random_state=42, n_jobs=-1
         )
-        
         importance_df = pd.DataFrame({
             'feature': self.feature_names,
             'importance': result.importances_mean,
             'std': result.importances_std
         }).sort_values('importance', ascending=False)
-        
         return {
             'method': 'permutation',
             'feature_importance': importance_df,
             'permutation_result': result
         }
     
-    def _gradient_importance_analysis(self):
-        """
-        Análisis de importancia basado en gradientes.
-        
-        Returns:
-            dict: Resultados del análisis
-        """
-        import tensorflow as tf
-        
-        X_tensor = tf.convert_to_tensor(self.X_test, dtype=tf.float32)
-        
-        with tf.GradientTape() as tape:
-            tape.watch(X_tensor)
-            predictions = self.model(X_tensor)
-        
-        gradients = tape.gradient(predictions, X_tensor)
-        importance = np.mean(np.abs(gradients.numpy()), axis=0)
-        
-        importance_df = pd.DataFrame({
-            'feature': self.feature_names,
-            'importance': importance
-        }).sort_values('importance', ascending=False)
-        
-        return {
-            'method': 'gradient',
-            'feature_importance': importance_df,
-            'gradients': gradients.numpy()
-        }
-    
     def plot_feature_importance(self, importance_analysis, save_path=None):
         """
-        Genera gráficos de importancia de características.
-        
-        Args:
-            importance_analysis (dict): Resultados del análisis de importancia
-            save_path (str): Ruta para guardar los gráficos
+        Genera gráficos (barras y pastel) para visualizar la importancia de las características
+        según el análisis realizado. Puede guardar los gráficos si se indica una ruta.
         """
         if importance_analysis is None:
             print("No hay datos de importancia de características disponibles")
             return
-        
         importance_df = importance_analysis['feature_importance']
         method = importance_analysis['method']
-        
         fig, axes = plt.subplots(1, 2, figsize=(15, 6))
-        
-        # Gráfico de barras
         top_features = importance_df.head(10)
         bars = axes[0].barh(range(len(top_features)), top_features['importance'])
         axes[0].set_yticks(range(len(top_features)))
@@ -366,13 +285,9 @@ class CreditModelEvaluator:
         axes[0].set_xlabel('Importance')
         axes[0].set_title(f'Top 10 Feature Importance ({method.upper()})')
         axes[0].invert_yaxis()
-        
-        # Añadir valores en las barras
         for i, (bar, value) in enumerate(zip(bars, top_features['importance'])):
             axes[0].text(bar.get_width() + 0.001, bar.get_y() + bar.get_height()/2,
                         f'{value:.4f}', ha='left', va='center')
-        
-        # Gráfico de pastel para top 5
         top_5 = importance_df.head(5)
         axes[1].pie(top_5['importance'], labels=top_5['feature'], autopct='%1.1f%%')
         axes[1].set_title(f'Top 5 Features Distribution ({method.upper()})')
@@ -387,86 +302,59 @@ class CreditModelEvaluator:
     
     def analyze_bias_and_fairness(self, sensitive_features=None):
         """
-        Analiza sesgos y justicia del modelo.
-        
-        Args:
-            sensitive_features (dict): Características sensibles para análisis
-            
-        Returns:
-            dict: Resultados del análisis de sesgos
+        Analiza el desempeño del modelo por grupos de características sensibles (por ejemplo, género, edad, etc.)
+        para detectar posibles sesgos. Devuelve un diccionario con métricas por grupo.
         """
         print("Analizando sesgos y justicia del modelo...")
-        
         if sensitive_features is None:
             print("No se proporcionaron características sensibles para análisis")
             return None
-        
         bias_analysis = {}
-        
         for feature_name, feature_values in sensitive_features.items():
             if feature_name in self.feature_names:
                 feature_idx = self.feature_names.index(feature_name)
                 feature_data = self.X_test[:, feature_idx]
-                
-                # Análisis por grupos
                 unique_values = np.unique(feature_data)
                 group_metrics = {}
-                
                 for value in unique_values:
                     mask = feature_data == value
                     if np.sum(mask) > 0:
                         group_y_true = self.y_test[mask]
                         group_y_pred_proba = self.model.predict(self.X_test[mask])
                         group_y_pred = (group_y_pred_proba > 0.5).astype(int)
-                        
-                        # Calcular métricas por grupo
                         group_accuracy = np.mean(group_y_pred == group_y_true)
                         group_precision = np.mean(group_y_pred[group_y_true == 1] == 1) if np.sum(group_y_true == 1) > 0 else 0
                         group_recall = np.mean(group_y_true[group_y_pred == 1] == 1) if np.sum(group_y_pred == 1) > 0 else 0
-                        
                         group_metrics[value] = {
                             'accuracy': group_accuracy,
                             'precision': group_precision,
                             'recall': group_recall,
                             'sample_size': np.sum(mask)
                         }
-                
                 bias_analysis[feature_name] = group_metrics
-        
         return bias_analysis
     
     def generate_explanation_report(self, sample_idx=0, save_path=None):
         """
-        Genera un reporte de explicabilidad para una muestra específica.
-        
-        Args:
-            sample_idx (int): Índice de la muestra a explicar
-            save_path (str): Ruta para guardar el reporte
+        Genera un reporte explicativo para una muestra específica usando LIME, mostrando cómo influyen
+        las características en la predicción de esa muestra. Puede guardar el reporte en un archivo JSON.
         """
         print(f"Generando explicación para muestra {sample_idx}...")
-        
-        # Obtener muestra
         X_sample = self.X_test[sample_idx:sample_idx+1]
         y_true = self.y_test[sample_idx]
         y_pred_proba = self.model.predict(X_sample)[0]
         y_pred = int(y_pred_proba > 0.5)
-        
-        # Crear explainer LIME
         explainer = lime.lime_tabular.LimeTabularExplainer(
             self.X_test,
             feature_names=self.feature_names,
             class_names=['No Default', 'Default'],
             mode='classification'
         )
-        
-        # Generar explicación
         explanation = explainer.explain_instance(
             X_sample[0], 
             self.model.predict,
             num_features=len(self.feature_names)
         )
-        
-        # Crear reporte
         report = {
             'sample_index': sample_idx,
             'true_label': int(y_true),
@@ -475,25 +363,10 @@ class CreditModelEvaluator:
             'explanation': explanation.as_list(),
             'feature_values': dict(zip(self.feature_names, X_sample[0]))
         }
-        
         if save_path:
             import json
             with open(save_path, 'w') as f:
                 json.dump(report, f, indent=4)
             print(f"Reporte de explicación guardado en: {save_path}")
-        
         return report
 
-def main():
-    """
-    Función principal para demostrar la evaluación del modelo.
-    """
-    # Esta función se ejecutaría después de entrenar el modelo
-    print("Este módulo debe usarse después de entrenar el modelo")
-    print("Ejemplo de uso:")
-    print("1. Entrenar modelo usando training.py")
-    print("2. Cargar modelo entrenado")
-    print("3. Usar CreditModelEvaluator para análisis")
-
-if __name__ == "__main__":
-    main() 
