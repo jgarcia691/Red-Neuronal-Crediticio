@@ -1,5 +1,8 @@
 """
-Módulo que define la arquitectura de la red neuronal MLP para clasificación de crédito implementada desde cero.
+Este módulo crea una red neuronal que ayuda a decidir si una persona es buena o mala para pedir un crédito. 
+Esta red está hecha paso a paso, sin usar trucos complicados.
+
+Imagina que la red es como un conjunto de pequeñas "cajitas" llamadas neuronas, que se conectan entre sí para aprender y tomar decisiones.
 """
 
 import numpy as np
@@ -7,125 +10,129 @@ import matplotlib.pyplot as plt
 
 class Neuron:
     """
-    Una neurona individual con activación y gradientes.
+    Esta clase representa una neurona, que es como una pequeña cajita que recibe información, la procesa y da un resultado.
     """
     def __init__(self, input_size, activation='relu'):
         """
-        Inicializa una neurona.
-        Args:
-            input_size (int): Número de entradas
-            activation (str): Función de activación ('relu', 'sigmoid', 'tanh')
+        Aquí preparamos la neurona para trabajar. 
+
+        - input_size: Cuántos datos entran a la neurona (como el número de preguntas que recibe).
+        - activation: Cómo la neurona decide qué hacer con la información que recibe (es como si la neurona tuviera una regla para pensar).
         """
-        # Inicialización He para ReLU, Xavier para otras
+        # Creamos los "pesos", que son números que dicen cuánto importa cada dato.
+        # También ponemos un "bias", que es un número extra para ayudar a decidir.
         if activation == 'relu':
             self.weights = np.random.randn(input_size) * np.sqrt(2.0 / input_size)
         else:
             self.weights = np.random.randn(input_size) * np.sqrt(1.0 / input_size)
-        
+
         self.bias = 0.0
         self.activation = activation
-        self.input = None
-        self.output = None
-        self.delta = None
-        
+        self.input = None  # Guardamos lo que entra para usarlo después
+        self.output = None  # Guardamos lo que sale después de pensar
+        self.delta = None  # Esto es para aprender de los errores
+
     def forward(self, inputs):
         """
-        Propagación hacia adelante.
+        Aquí la neurona recibe datos, los combina usando sus pesos y bias, y decide qué sacar.
+
+        Recuerda que es como si la neurona pusiera números en una balanza para decidir si "enciende" o no.
         """
         self.input = inputs
-        self.z = np.dot(self.weights, inputs) + self.bias
-        self.output = self._activate(self.z)
+        self.z = np.dot(self.weights, inputs) + self.bias  # Suma ponderada
+        self.output = self._activate(self.z)  # Aplica la regla para decidir
         return self.output
-    
+
     def _activate(self, z):
         """
-        Aplica la función de activación.
+        Esta función es la regla de la neurona para decidir qué salida dar, dependiendo de cómo le llegó la información.
         """
         if self.activation == 'relu':
-            return np.maximum(0, z)
+            return np.maximum(0, z)  # Si el número es negativo, saca 0; si no, saca el mismo número
         elif self.activation == 'sigmoid':
-            return 1 / (1 + np.exp(-z))
+            return 1 / (1 + np.exp(-z))  # Saca un número entre 0 y 1, como una probabilidad
         elif self.activation == 'tanh':
-            return np.tanh(z)
+            return np.tanh(z)  # Saca un número entre -1 y 1
         else:
-            return z
-    
+            return z  # No cambia nada (función identidad)
+
     def _activate_derivative(self, z):
         """
-        Derivada de la función de activación.
+        Esta es la forma en que la neurona se prepara para aprender cuando se equivoca, viendo qué tanto cambió su salida.
         """
         if self.activation == 'relu':
-            return np.where(z > 0, 1, 0)
+            return np.where(z > 0, 1, 0)  # Si z > 0, dice 1, sino 0
         elif self.activation == 'sigmoid':
             s = 1 / (1 + np.exp(-z))
-            return s * (1 - s)
+            return s * (1 - s)  # Fórmula especial para sigmoid
         elif self.activation == 'tanh':
-            return 1 - np.tanh(z)**2
+            return 1 - np.tanh(z) ** 2  # Fórmula especial para tanh
         else:
             return 1
 
 class Layer:
     """
-    Una capa de neuronas.
+    Una capa es un grupo de neuronas que trabajan juntas.
+
+    Cada capa recibe información, la procesa con todas sus neuronas, y manda la respuesta a la siguiente capa.
     """
     def __init__(self, input_size, output_size, activation='relu'):
         """
-        Inicializa una capa.
-        Args:
-            input_size (int): Número de entradas
-            output_size (int): Número de neuronas en la capa
-            activation (str): Función de activación
+        Creamos una capa con muchas neuronas.
+
+        - input_size: cuántos datos entran.
+        - output_size: cuántas neuronas hay en la capa.
         """
         self.neurons = [Neuron(input_size, activation) for _ in range(output_size)]
-        self.input = None
-        self.output = None
-        
+        self.input = None  # Guardamos lo que entra a la capa
+        self.output = None  # Guardamos lo que sale de la capa
+
     def forward(self, inputs):
         """
-        Propagación hacia adelante de toda la capa.
+        Cada neurona de la capa procesa la información, y la capa junta todas esas respuestas.
         """
         self.input = inputs
         out = np.array([neuron.forward(inputs) for neuron in self.neurons])
-        # Si la capa tiene una sola neurona, devolver escalar
         if out.size == 1:
-            return out.item()
+            return out.item()  # Si es solo un número, lo devuelve así
         return out
-    
+
     def backward(self, delta_next, learning_rate):
         """
-        Backpropagation para esta capa.
+        Aquí la capa aprende. 
+
+        Recibe cuánto se equivocó la capa siguiente (delta_next) y usa eso para ajustar sus pesos y bias.
         """
-        # Si delta_next es escalar, convertirlo a array
         if not isinstance(delta_next, np.ndarray):
             delta_next = np.array([delta_next])
-        # Ajustar delta_next para que tenga el tamaño correcto
         if delta_next.size == 1 and len(self.neurons) > 1:
             delta_next = np.full(len(self.neurons), delta_next[0])
         elif delta_next.size != len(self.neurons):
-            # Si el tamaño sigue sin coincidir, hacer broadcast seguro
             delta_next = np.resize(delta_next, len(self.neurons))
+
         delta_current = np.zeros(len(self.neurons))
         for i, neuron in enumerate(self.neurons):
             neuron.delta = delta_next[i] * neuron._activate_derivative(neuron.z)
-            neuron.weights -= learning_rate * neuron.delta * neuron.input
-            neuron.bias -= learning_rate * neuron.delta
+            neuron.weights -= learning_rate * neuron.delta * neuron.input  # Cambia los pesos para aprender
+            neuron.bias -= learning_rate * neuron.delta  # Cambia el bias
             delta_current[i] = neuron.delta
         return delta_current
 
 class CreditMLP:
     """
-    MLP implementado desde cero para clasificación de riesgo crediticio.
+    Esta es la red neuronal completa que usamos para decidir si alguien es buen o mal candidato para un crédito.
+
+    Tiene varias capas: las ocultas que aprenden cosas complejas, y la capa final que decide "sí" o "no".
     """
-    def __init__(self, input_dim, hidden_layer_sizes=(64,), activation='relu', learning_rate=0.001, max_iter=200, random_state=42):
+    def __init__(self, input_dim, hidden_layer_sizes=(64,), activation='relu',
+                 learning_rate=0.001, max_iter=200, random_state=42):
         """
-        Inicializa la arquitectura del MLP.
-        Args:
-            input_dim (int): Dimensión de entrada
-            hidden_layer_sizes (tuple): Tamaño de las capas ocultas
-            activation (str): Función de activación
-            learning_rate (float): Tasa de aprendizaje
-            max_iter (int): Número máximo de iteraciones
-            random_state (int): Semilla
+        Aquí armamos la red con las capas que queremos y configuramos cómo va a aprender.
+
+        - input_dim: cuántos datos tiene cada persona (por ejemplo, edad, salario, etc).
+        - hidden_layer_sizes: cuántas neuronas hay en cada capa oculta.
+        - learning_rate: qué tan rápido aprende.
+        - max_iter: cuántas veces revisa todos los datos para aprender.
         """
         np.random.seed(random_state)
         self.input_dim = input_dim
@@ -134,179 +141,150 @@ class CreditMLP:
         self.learning_rate = learning_rate
         self.max_iter = max_iter
         self.random_state = random_state
-        
-        # Construir la arquitectura
+
         self.layers = []
-        
-        # Capas ocultas
+
+        # Creamos todas las capas ocultas
         prev_size = input_dim
         for hidden_size in hidden_layer_sizes:
             self.layers.append(Layer(prev_size, hidden_size, activation))
             prev_size = hidden_size
-        
-        # Capa de salida (sigmoid para clasificación binaria)
+
+        # Capa final que da una probabilidad (entre 0 y 1)
         self.layers.append(Layer(prev_size, 1, 'sigmoid'))
-        
-        # Historial de entrenamiento
-        self.training_loss = []
-        self.validation_loss = []
-        
+
+        self.training_loss = []  # Guarda cómo va mejorando
+        self.validation_loss = []  # Guarda qué tan bien va con datos que no vio
+
     def forward(self, X):
         """
-        Propagación hacia adelante.
+        Pasamos los datos desde la primera capa hasta la última para obtener una predicción.
         """
         current_input = np.asarray(X).flatten()
         for layer in self.layers:
             current_input = layer.forward(current_input)
-            # Si la salida es un escalar, conviértelo a array para la siguiente capa (excepto la última)
             if not isinstance(current_input, np.ndarray) and layer != self.layers[-1]:
                 current_input = np.array([current_input])
         return current_input
-    
+
     def backward(self, X, y, y_pred):
         """
-        Backpropagation.
+        Aquí la red aprende viendo cuánto se equivocó y ajustando sus pesos.
         """
-        # Calcular error de salida
-        m = X.shape[0]
+        m = X.shape[0] if hasattr(X, 'shape') else 1
         delta = (y_pred - y) / m
-        
-        # Backpropagation a través de las capas
         for layer in reversed(self.layers):
             delta = layer.backward(delta, self.learning_rate)
-    
+
     def compute_loss(self, y_true, y_pred):
         """
-        Calcula la pérdida (binary cross-entropy).
+        Calcula qué tan mal lo hizo la red usando una fórmula especial para clasificación.
         """
-        epsilon = 1e-15  # Para evitar log(0)
+        epsilon = 1e-15
         y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
         return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
-    
+
     def fit(self, X, y, validation_split=0.2):
         """
-        Entrena el modelo usando backpropagation.
+        Enseña a la red a partir de ejemplos.
+
+        Divide los datos en dos grupos: uno para aprender y otro para ver qué tan bien aprendió.
         """
-        # Dividir datos de validación
         split_idx = int(len(X) * (1 - validation_split))
         X_train, X_val = X[:split_idx], X[split_idx:]
         y_train, y_val = y[:split_idx], y[split_idx:]
-        print(f"Entrenando con {len(X_train)} muestras, validando con {len(X_val)} muestras")
+        print(f"Entrenando con {len(X_train)} ejemplos, validando con {len(X_val)} ejemplos")
         for epoch in range(self.max_iter):
-            # Entrenamiento
             total_loss = 0
             for i in range(len(X_train)):
-                if hasattr(X_train, 'iloc'):
-                    xi = np.asarray(X_train.iloc[i]).flatten()
-                else:
-                    xi = np.asarray(X_train[i]).flatten()
-                if hasattr(y_train, 'iloc'):
-                    yi = float(np.asarray(y_train.iloc[i]).squeeze())
-                else:
-                    yi = float(np.asarray(y_train[i]).squeeze())
-                # Forward pass
+                xi = np.asarray(X_train.iloc[i] if hasattr(X_train, 'iloc') else X_train[i]).flatten()
+                yi = float(y_train.iloc[i] if hasattr(y_train, 'iloc') else y_train[i])
                 y_pred = self.forward(xi)
-                # Backward pass
                 self.backward(xi, yi, y_pred)
                 total_loss += self.compute_loss(yi, y_pred)
-            # Calcular pérdida promedio
+
             avg_loss = total_loss / len(X_train)
             self.training_loss.append(avg_loss)
-            # Validación
+
             val_loss = 0
             for i in range(len(X_val)):
-                if hasattr(X_val, 'iloc'):
-                    xi = np.asarray(X_val.iloc[i]).flatten()
-                else:
-                    xi = np.asarray(X_val[i]).flatten()
-                if hasattr(y_val, 'iloc'):
-                    yi = float(np.asarray(y_val.iloc[i]).squeeze())
-                else:
-                    yi = float(np.asarray(y_val[i]).squeeze())
+                xi = np.asarray(X_val.iloc[i] if hasattr(X_val, 'iloc') else X_val[i]).flatten()
+                yi = float(y_val.iloc[i] if hasattr(y_val, 'iloc') else y_val[i])
                 y_pred_val = self.forward(xi)
                 val_loss += self.compute_loss(yi, y_pred_val)
+
             val_loss /= len(X_val)
             self.validation_loss.append(val_loss)
-            # Mostrar progreso cada 20 épocas
+
             if (epoch + 1) % 20 == 0:
-                print(f"Época {epoch + 1}/{self.max_iter} - Loss: {avg_loss:.4f} - Val Loss: {val_loss:.4f}")
-    
+                print(f"Época {epoch + 1}/{self.max_iter} - Pérdida entrenamiento: {avg_loss:.4f} - Pérdida validación: {val_loss:.4f}")
+
     def predict(self, X):
         """
-        Predice la clase (0 o 1).
+        Después de aprender, la red puede decir si alguien es buen candidato (1) o no (0).
         """
         predictions = []
         for i in range(len(X)):
-            if hasattr(X, 'iloc'):
-                xi = np.asarray(X.iloc[i]).flatten()
-            else:
-                xi = np.asarray(X[i]).flatten()
+            xi = np.asarray(X.iloc[i] if hasattr(X, 'iloc') else X[i]).flatten()
             pred = self.forward(xi)
             predictions.append(1 if pred > 0.5 else 0)
         return np.array(predictions)
-    
+
     def predict_proba(self, X):
         """
-        Predice la probabilidad de la clase positiva.
+        También puede dar la probabilidad de que alguien sea buen candidato (un número entre 0 y 1).
         """
         predictions = []
         for i in range(len(X)):
-            if hasattr(X, 'iloc'):
-                xi = np.asarray(X.iloc[i]).flatten()
-            else:
-                xi = np.asarray(X[i]).flatten()
+            xi = np.asarray(X.iloc[i] if hasattr(X, 'iloc') else X[i]).flatten()
             pred = self.forward(xi)
             predictions.append(pred)
         return np.array(predictions)
-    
+
     def get_model_summary(self):
         """
-        Devuelve un resumen del modelo.
+        Dice cuántas capas y conexiones tiene la red, para entender qué tan grande es.
         """
         total_params = 0
         prev_size = self.input_dim
-        
         for i, layer in enumerate(self.layers):
             output_size = len(layer.neurons)
-            params = (prev_size + 1) * output_size  # +1 por el bias
+            params = (prev_size + 1) * output_size
             total_params += params
-            
-            print(f"Capa {i+1}: {prev_size} → {output_size} neuronas ({params} parámetros)")
+            print(f"Capa {i + 1}: {prev_size} → {output_size} neuronas ({params} conexiones)")
             prev_size = output_size
-        
-        print(f"Total de parámetros: {total_params}")
-        return f"MLP Manual - {len(self.layers)} capas, {total_params} parámetros"
-    
+        print(f"Total de conexiones: {total_params}")
+        return f"MLP Manual - {len(self.layers)} capas, {total_params} conexiones"
+
     def get_feature_importance(self, feature_names=None):
         """
-        Devuelve la importancia de las características basada en los pesos de la primera capa.
+        Nos dice qué datos son más importantes para la red al decidir.
+
+        Mira cuánto pesan los datos en la primera capa para entender esto.
         """
         if not self.layers:
             raise ValueError("El modelo debe estar entrenado primero")
-        
-        # Usar los pesos de la primera capa
+
         first_layer = self.layers[0]
         importances = np.zeros(self.input_dim)
-        
         for neuron in first_layer.neurons:
             importances += np.abs(neuron.weights)
-        
-        importances /= len(first_layer.neurons)  # Promedio
-        
+        importances /= len(first_layer.neurons)
+
         if feature_names is None:
-            feature_names = [f'feature_{i}' for i in range(len(importances))]
-        
+            feature_names = [f'Dato_{i}' for i in range(len(importances))]
+
         return dict(zip(feature_names, importances))
-    
+
     def plot_training_history(self):
         """
-        Grafica el historial de entrenamiento.
+        Muestra un dibujo con cómo la red fue aprendiendo y mejorando con el tiempo.
         """
         plt.figure(figsize=(10, 6))
-        plt.plot(self.training_loss, label='Training Loss', color='blue')
-        plt.plot(self.validation_loss, label='Validation Loss', color='red')
-        plt.title('Historial de Entrenamiento')
-        plt.xlabel('Época')
+        plt.plot(self.training_loss, label='Pérdida entrenamiento', color='blue')
+        plt.plot(self.validation_loss, label='Pérdida validación', color='red')
+        plt.title('Cómo mejoró la red con el entrenamiento')
+        plt.xlabel('Épocas')
         plt.ylabel('Pérdida')
         plt.legend()
         plt.grid(True)
@@ -314,25 +292,15 @@ class CreditMLP:
 
     def score(self, X, y):
         """
-        Calcula el accuracy score para compatibilidad con scikit-learn.
-        
-        Args:
-            X: Features
-            y: Labels verdaderos
-            
-        Returns:
-            float: Accuracy score
+        Calcula qué tan bien adivina la red, diciéndonos qué porcentaje de respuestas son correctas.
         """
         y_pred = self.predict(X)
         return (y_pred == y).mean()
 
+# Función extra para crear el modelo con una configuración
 def create_model_from_config(config):
     """
-    Crea un modelo basado en una configuración.
-    Args:
-        config (dict): Configuración del modelo
-    Returns:
-        CreditMLP: Instancia del modelo
+    Crea la red usando una lista de instrucciones (configuración).
     """
     input_dim = config['input_dim']
     hidden_layer_sizes = tuple(config.get('hidden_layers', [64]))
@@ -351,29 +319,29 @@ def create_model_from_config(config):
 
 def main():
     """
-    Demostración de la creación y entrenamiento del modelo.
+    Aquí mostramos cómo usar la red neuronal para entrenarla y probarla con datos falsos.
     """
     from src.data_processing import CreditDataProcessor
+
     processor = CreditDataProcessor()
     data = processor.generate_sample_data(n_samples=500)
     X_train, X_test, y_train, y_test, feature_names = processor.prepare_data(data)
-    
+
     model = CreditMLP(input_dim=X_train.shape[1], max_iter=50)
     print("Resumen del modelo:")
     model.get_model_summary()
-    
+
     print("\nEntrenando modelo...")
     model.fit(X_train, y_train)
-    
+
     predictions = model.predict(X_test)
     accuracy = (predictions == y_test).mean()
-    print(f"Accuracy en test: {accuracy:.4f}")
-    
-    # Mostrar importancia de características
+    print(f"Precisión en test: {accuracy:.4f}")
+
     importance = model.get_feature_importance(feature_names)
-    print("Importancia de características:")
+    print("Datos más importantes (Top 5):")
     for feature, imp in sorted(importance.items(), key=lambda x: x[1], reverse=True)[:5]:
         print(f"  {feature}: {imp:.4f}")
 
 if __name__ == "__main__":
-    main() 
+    main()

@@ -12,15 +12,17 @@ from plotly.subplots import make_subplots
 
 class CreditVisualizer:
     """
-    Clase para crear visualizaciones del sistema de aprobación de crédito.
+    Clase para crear visualizaciones que ayudan a entender
+    los datos, el desempeño del modelo y los resultados del sistema
+    de aprobación de crédito.
     """
     
     def __init__(self, style='seaborn'):
         """
-        Inicializa el visualizador.
+        Inicializa el visualizador con un estilo para matplotlib y define una paleta de colores.
         
         Args:
-            style (str): Estilo de matplotlib
+            style (str): Estilo visual para matplotlib (por defecto 'seaborn').
         """
         plt.style.use(style)
         self.colors = {
@@ -34,23 +36,24 @@ class CreditVisualizer:
     
     def plot_data_distribution(self, data, save_path=None):
         """
-        Visualiza la distribución de los datos.
+        Genera histogramas para visualizar la distribución de las variables numéricas del dataset,
+        excluyendo la variable objetivo 'default'.
         
         Args:
-            data (pd.DataFrame): Dataset
-            save_path (str): Ruta para guardar
+            data (pd.DataFrame): Dataset con los datos.
+            save_path (str, opcional): Ruta para guardar la imagen resultante.
         """
         fig, axes = plt.subplots(2, 3, figsize=(18, 12))
         
-        # Variables numéricas
+        # Selecciona las columnas numéricas excluyendo la variable target
         numerical_cols = data.select_dtypes(include=[np.number]).columns
         numerical_cols = [col for col in numerical_cols if col != 'default']
         
+        # Grafica hasta 6 variables numéricas en histogramas
         for i, col in enumerate(numerical_cols[:6]):
             row = i // 3
             col_idx = i % 3
             
-            # Histograma
             axes[row, col_idx].hist(data[col], bins=30, alpha=0.7, 
                                   color=self.colors['primary'], edgecolor='black')
             axes[row, col_idx].set_title(f'Distribución de {col}')
@@ -67,11 +70,12 @@ class CreditVisualizer:
     
     def plot_correlation_matrix(self, data, save_path=None):
         """
-        Visualiza la matriz de correlación.
+        Genera un mapa de calor de la matriz de correlación entre las variables del dataset,
+        con máscara para la mitad superior para mejorar legibilidad.
         
         Args:
-            data (pd.DataFrame): Dataset
-            save_path (str): Ruta para guardar
+            data (pd.DataFrame): Dataset con los datos.
+            save_path (str, opcional): Ruta para guardar la imagen resultante.
         """
         correlation_matrix = data.corr()
         
@@ -90,15 +94,16 @@ class CreditVisualizer:
     
     def plot_target_distribution(self, data, save_path=None):
         """
-        Visualiza la distribución del target.
+        Visualiza la distribución del target 'default' con un gráfico de pastel,
+        además muestra un boxplot de la primera variable numérica agrupada por el target.
         
         Args:
-            data (pd.DataFrame): Dataset
-            save_path (str): Ruta para guardar
+            data (pd.DataFrame): Dataset con los datos.
+            save_path (str, opcional): Ruta para guardar la imagen resultante.
         """
         fig, axes = plt.subplots(1, 2, figsize=(15, 6))
         
-        # Distribución general
+        # Conteo y gráfico circular del target
         target_counts = data['default'].value_counts()
         colors = [self.colors['success'], self.colors['danger']]
         labels = ['No Default', 'Default']
@@ -107,15 +112,12 @@ class CreditVisualizer:
                    colors=colors, startangle=90)
         axes[0].set_title('Distribución del Target')
         
-        # Distribución por características
+        # Boxplot de la primera variable numérica separada por target
         numerical_cols = data.select_dtypes(include=[np.number]).columns
         numerical_cols = [col for col in numerical_cols if col != 'default']
         
         if len(numerical_cols) > 0:
-            # Usar la primera variable numérica
             col = numerical_cols[0]
-            
-            # Boxplot por target
             data.boxplot(column=col, by='default', ax=axes[1])
             axes[1].set_title(f'{col} por Target')
             axes[1].set_xlabel('Default')
@@ -130,11 +132,12 @@ class CreditVisualizer:
     
     def plot_training_history(self, history, save_path=None):
         """
-        Visualiza el historial de entrenamiento.
+        Grafica el historial de entrenamiento de un modelo Keras,
+        mostrando accuracy, loss, precision y recall para entrenamiento y validación.
         
         Args:
-            history: Historial de entrenamiento de Keras
-            save_path (str): Ruta para guardar
+            history: Objeto History retornado por Keras al entrenar un modelo.
+            save_path (str, opcional): Ruta para guardar la imagen resultante.
         """
         fig, axes = plt.subplots(2, 2, figsize=(15, 10))
         
@@ -156,7 +159,7 @@ class CreditVisualizer:
         axes[0, 1].legend()
         axes[0, 1].grid(True, alpha=0.3)
         
-        # Precision
+        # Precision (si disponible)
         if 'precision' in history.history:
             axes[1, 0].plot(history.history['precision'], label='Train', color=self.colors['primary'])
             axes[1, 0].plot(history.history['val_precision'], label='Validation', color=self.colors['secondary'])
@@ -166,7 +169,7 @@ class CreditVisualizer:
             axes[1, 0].legend()
             axes[1, 0].grid(True, alpha=0.3)
         
-        # Recall
+        # Recall (si disponible)
         if 'recall' in history.history:
             axes[1, 1].plot(history.history['recall'], label='Train', color=self.colors['primary'])
             axes[1, 1].plot(history.history['val_recall'], label='Validation', color=self.colors['secondary'])
@@ -185,11 +188,11 @@ class CreditVisualizer:
     
     def plot_confusion_matrix(self, cm, save_path=None):
         """
-        Visualiza la matriz de confusión.
+        Grafica la matriz de confusión con etiquetas claras para clases positivas y negativas.
         
         Args:
-            cm (np.array): Matriz de confusión
-            save_path (str): Ruta para guardar
+            cm (np.array): Matriz de confusión (2x2).
+            save_path (str, opcional): Ruta para guardar la imagen resultante.
         """
         plt.figure(figsize=(8, 6))
         
@@ -207,13 +210,13 @@ class CreditVisualizer:
     
     def plot_roc_curve(self, fpr, tpr, roc_auc, save_path=None):
         """
-        Visualiza la curva ROC.
+        Grafica la curva ROC con el área bajo la curva (AUC).
         
         Args:
-            fpr (np.array): False Positive Rate
-            tpr (np.array): True Positive Rate
-            roc_auc (float): Área bajo la curva ROC
-            save_path (str): Ruta para guardar
+            fpr (np.array): Tasa de falsos positivos.
+            tpr (np.array): Tasa de verdaderos positivos.
+            roc_auc (float): Área bajo la curva ROC.
+            save_path (str, opcional): Ruta para guardar la imagen resultante.
         """
         plt.figure(figsize=(8, 6))
         
@@ -235,15 +238,16 @@ class CreditVisualizer:
     
     def plot_feature_importance(self, importance_df, save_path=None):
         """
-        Visualiza la importancia de características.
+        Visualiza la importancia relativa de características en forma de barras horizontales
+        y la distribución porcentual de las 5 características más importantes en un gráfico de pastel.
         
         Args:
-            importance_df (pd.DataFrame): DataFrame con importancia de características
-            save_path (str): Ruta para guardar
+            importance_df (pd.DataFrame): DataFrame con columnas ['feature', 'importance'] ordenado descendentemente.
+            save_path (str, opcional): Ruta para guardar la imagen resultante.
         """
         fig, axes = plt.subplots(1, 2, figsize=(15, 6))
         
-        # Top 10 características
+        # Barras horizontales top 10 características
         top_features = importance_df.head(10)
         
         bars = axes[0].barh(range(len(top_features)), top_features['importance'])
@@ -253,12 +257,12 @@ class CreditVisualizer:
         axes[0].set_title('Top 10 Feature Importance')
         axes[0].invert_yaxis()
         
-        # Añadir valores en las barras
-        for i, (bar, value) in enumerate(zip(bars, top_features['importance'])):
+        # Añadir etiquetas con valor numérico en barras
+        for bar, value in zip(bars, top_features['importance']):
             axes[0].text(bar.get_width() + 0.001, bar.get_y() + bar.get_height()/2,
-                        f'{value:.4f}', ha='left', va='center')
+                         f'{value:.4f}', ha='left', va='center')
         
-        # Distribución de top 5
+        # Pie chart top 5 características
         top_5 = importance_df.head(5)
         axes[1].pie(top_5['importance'], labels=top_5['feature'], autopct='%1.1f%%')
         axes[1].set_title('Top 5 Features Distribution')
@@ -272,15 +276,16 @@ class CreditVisualizer:
     
     def create_interactive_dashboard(self, data, model, processor, feature_names):
         """
-        Crea un dashboard interactivo con Plotly.
+        Crea un dashboard interactivo con Plotly que incluye la distribución del target,
+        correlación con target, importancia de características y distribución de predicciones.
         
         Args:
-            data (pd.DataFrame): Dataset
-            model: Modelo entrenado
-            processor: Procesador de datos
-            feature_names (list): Nombres de características
+            data (pd.DataFrame): Dataset original.
+            model: Modelo entrenado que posee método predict.
+            processor: Objeto para preprocesar datos antes de predecir.
+            feature_names (list): Lista con nombres de las características usadas por el modelo.
         """
-        # Crear subplots
+        # Crear una figura con subplots organizados en 2x2
         fig = make_subplots(
             rows=2, cols=2,
             subplot_titles=('Distribución del Target', 'Correlación con Target', 
@@ -289,7 +294,7 @@ class CreditVisualizer:
                    [{"type": "bar"}, {"type": "histogram"}]]
         )
         
-        # 1. Distribución del target
+        # 1. Gráfico circular del target
         target_counts = data['default'].value_counts()
         fig.add_trace(
             go.Pie(labels=['No Default', 'Default'], values=target_counts.values,
@@ -297,7 +302,7 @@ class CreditVisualizer:
             row=1, col=1
         )
         
-        # 2. Correlación con target
+        # 2. Barras de correlación absoluta con target
         correlation_matrix = data.corr()
         target_corr = correlation_matrix['default'].abs().sort_values(ascending=False)
         target_corr = target_corr[target_corr.index != 'default']
@@ -308,8 +313,7 @@ class CreditVisualizer:
             row=1, col=2
         )
         
-        # 3. Importancia de características (simulada)
-        # En un caso real, esto vendría del análisis de importancia
+        # 3. Importancia simulada de características (en un caso real se usa análisis real)
         feature_importance = np.random.rand(len(feature_names))
         feature_importance = feature_importance / feature_importance.sum()
         
@@ -319,10 +323,9 @@ class CreditVisualizer:
             row=2, col=1
         )
         
-        # 4. Distribución de predicciones
-        # Hacer predicciones en una muestra
+        # 4. Distribución de predicciones sobre una muestra de datos
         sample_data = data.sample(min(1000, len(data)))
-        X_sample = processor.prepare_data(sample_data)[0]  # Solo X_train
+        X_sample = processor.prepare_data(sample_data)[0]  # Solo características
         predictions = model.predict(X_sample)
         
         fig.add_trace(
@@ -331,7 +334,7 @@ class CreditVisualizer:
             row=2, col=2
         )
         
-        # Actualizar layout
+        # Configurar layout general
         fig.update_layout(
             title_text="Dashboard de Aprobación de Crédito",
             showlegend=False,
@@ -342,11 +345,13 @@ class CreditVisualizer:
     
     def plot_bias_analysis(self, bias_results, save_path=None):
         """
-        Visualiza el análisis de sesgos.
+        Visualiza el análisis de sesgos para diferentes características,
+        mostrando accuracy, precision y recall por valor categórico de cada característica.
         
         Args:
-            bias_results (dict): Resultados del análisis de sesgos
-            save_path (str): Ruta para guardar
+            bias_results (dict): Diccionario con resultados del análisis de sesgos,
+                                 estructura: {feature: {value: {metric: score}}}
+            save_path (str, opcional): Ruta para guardar la imagen resultante.
         """
         if not bias_results:
             print("No hay datos de análisis de sesgos disponibles")
@@ -394,4 +399,4 @@ def main():
     print("Use las funciones de CreditVisualizer para crear gráficos")
 
 if __name__ == "__main__":
-    main() 
+    main()
