@@ -1,5 +1,8 @@
 """
-Módulo que define la arquitectura de la red neuronal MLP para clasificación de crédito implementada desde cero.
+Este módulo crea una red neuronal que ayuda a decidir si una persona es buena o mala para pedir un crédito. 
+Esta red está hecha paso a paso, sin usar trucos complicados.
+
+Imagina que la red es como un conjunto de pequeñas "cajitas" llamadas neuronas, que se conectan entre sí para aprender y tomar decisiones.
 """
 
 # Importa numpy para operaciones numéricas y matplotlib para visualización
@@ -8,14 +11,20 @@ import matplotlib.pyplot as plt
 
 class Neuron:
     """
-    Una neurona individual con activación y gradientes.
+    Esta clase representa una neurona, que es como una pequeña cajita que recibe información, la procesa y da un resultado.
     """
     def __init__(self, input_size, activation='relu'):
         """
+        Aquí preparamos la neurona para trabajar. 
+
+        - input_size: Cuántos datos entran a la neurona (como el número de preguntas que recibe).
+        - activation: Cómo la neurona decide qué hacer con la información que recibe (es como si la neurona tuviera una regla para pensar).
         Inicializa los pesos y el bias de la neurona según la función de activación.
         - input_size: número de entradas a la neurona.
         - activation: función de activación ('relu', 'sigmoid', 'tanh').
         """
+        # Creamos los "pesos", que son números que dicen cuánto importa cada dato.
+        # También ponemos un "bias", que es un número extra para ayudar a decidir.
         # Inicializa los pesos y el bias de la neurona según la función de activación
         if activation == 'relu':
             self.weights = np.random.randn(input_size) * np.sqrt(2.0 / input_size)  # He
@@ -23,22 +32,29 @@ class Neuron:
             self.weights = np.random.randn(input_size) * np.sqrt(1.0 / input_size)  # Xavier
         self.bias = 0.0
         self.activation = activation
+        self.input = None  # Guardamos lo que entra para usarlo después
+        self.output = None  # Guardamos lo que sale después de pensar
+        self.delta = None  # Esto es para aprender de los errores
+
         self.input = None
         self.output = None
         self.delta = None
     
     def forward(self, inputs):
         """
+        Aquí la neurona recibe datos, los combina usando sus pesos y bias, y decide qué sacar.
+
+        Recuerda que es como si la neurona pusiera números en una balanza para decidir si "enciende" o no.
         Calcula la salida de la neurona aplicando pesos, bias y función de activación.
         - inputs: vector de entrada.
         Devuelve la salida activada de la neurona.
         """
         # Calcula la salida de la neurona aplicando pesos, bias y función de activación
         self.input = inputs
-        self.z = np.dot(self.weights, inputs) + self.bias
-        self.output = self._activate(self.z)
+        self.z = np.dot(self.weights, inputs) + self.bias  # Suma ponderada
+        self.output = self._activate(self.z)  # Aplica la regla para decidir
         return self.output
-    
+
     def _activate(self, z):
         """
         Aplica la función de activación seleccionada sobre el valor z.
@@ -47,14 +63,14 @@ class Neuron:
         """
         # Aplica la función de activación seleccionada
         if self.activation == 'relu':
-            return np.maximum(0, z)
+            return np.maximum(0, z)  # Si el número es negativo, saca 0; si no, saca el mismo número
         elif self.activation == 'sigmoid':
-            return 1 / (1 + np.exp(-z))
+            return 1 / (1 + np.exp(-z))  # Saca un número entre 0 y 1, como una probabilidad
         elif self.activation == 'tanh':
-            return np.tanh(z)
+            return np.tanh(z)  # Saca un número entre -1 y 1
         else:
-            return z
-    
+            return z  # No cambia nada (función identidad)
+
     def _activate_derivative(self, z):
         """
         Calcula la derivada de la función de activación para z.
@@ -63,18 +79,20 @@ class Neuron:
         """
         # Calcula la derivada de la función de activación
         if self.activation == 'relu':
-            return np.where(z > 0, 1, 0)
+            return np.where(z > 0, 1, 0)  # Si z > 0, dice 1, sino 0
         elif self.activation == 'sigmoid':
             s = 1 / (1 + np.exp(-z))
-            return s * (1 - s)
+            return s * (1 - s)  # Fórmula especial para sigmoid
         elif self.activation == 'tanh':
-            return 1 - np.tanh(z)**2
+            return 1 - np.tanh(z) ** 2  # Fórmula especial para tanh
         else:
             return 1
 
 class Layer:
     """
-    Una capa de neuronas.
+    Una capa es un grupo de neuronas que trabajan juntas.
+
+    Cada capa recibe información, la procesa con todas sus neuronas, y manda la respuesta a la siguiente capa.
     """
     def __init__(self, input_size, output_size, activation='relu'):
         """
@@ -85,6 +103,9 @@ class Layer:
         """
         # Crea una lista de neuronas para la capa
         self.neurons = [Neuron(input_size, activation) for _ in range(output_size)]
+        self.input = None  # Guardamos lo que entra a la capa
+        self.output = None  # Guardamos lo que sale de la capa
+
         self.input = None
         self.output = None
     
@@ -98,9 +119,9 @@ class Layer:
         self.input = inputs
         out = np.array([neuron.forward(inputs) for neuron in self.neurons])
         if out.size == 1:
-            return out.item()
+            return out.item()  # Si es solo un número, lo devuelve así
         return out
-    
+
     def backward(self, delta_next, learning_rate):
         """
         Realiza el paso de backpropagation para la capa.
@@ -115,19 +136,23 @@ class Layer:
             delta_next = np.full(len(self.neurons), delta_next[0])
         elif delta_next.size != len(self.neurons):
             delta_next = np.resize(delta_next, len(self.neurons))
+
         delta_current = np.zeros(len(self.neurons))
         for i, neuron in enumerate(self.neurons):
             neuron.delta = delta_next[i] * neuron._activate_derivative(neuron.z)
-            neuron.weights -= learning_rate * neuron.delta * neuron.input
-            neuron.bias -= learning_rate * neuron.delta
+            neuron.weights -= learning_rate * neuron.delta * neuron.input  # Cambia los pesos para aprender
+            neuron.bias -= learning_rate * neuron.delta  # Cambia el bias
             delta_current[i] = neuron.delta
         return delta_current
 
 class CreditMLP:
     """
-    MLP implementado desde cero para clasificación de riesgo crediticio.
+    Esta es la red neuronal completa que usamos para decidir si alguien es buen o mal candidato para un crédito.
+
+    Tiene varias capas: las ocultas que aprenden cosas complejas, y la capa final que decide "sí" o "no".
     """
-    def __init__(self, input_dim, hidden_layer_sizes=(64,), activation='relu', learning_rate=0.001, max_iter=200, random_state=42):
+    def __init__(self, input_dim, hidden_layer_sizes=(64,), activation='relu',
+                 learning_rate=0.001, max_iter=200, random_state=42):
         """
         Inicializa la arquitectura del MLP y sus hiperparámetros.
         - input_dim: número de características de entrada.
@@ -170,7 +195,7 @@ class CreditMLP:
             if not isinstance(current_input, np.ndarray) and layer != self.layers[-1]:
                 current_input = np.array([current_input])
         return current_input
-    
+
     def backward(self, X, y, y_pred):
         """
         Realiza backpropagation para actualizar los pesos de todas las capas.
@@ -183,7 +208,7 @@ class CreditMLP:
         delta = (y_pred - y) / m
         for layer in reversed(self.layers):
             delta = layer.backward(delta, self.learning_rate)
-    
+
     def compute_loss(self, y_true, y_pred):
         """
         Calcula la pérdida de entropía cruzada binaria entre y_true y y_pred.
@@ -195,7 +220,7 @@ class CreditMLP:
         epsilon = 1e-15
         y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
         return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
-    
+
     def fit(self, X, y, validation_split=0.2):
         """
         Entrena el modelo usando backpropagation y guarda el historial de pérdidas.
@@ -207,7 +232,7 @@ class CreditMLP:
         split_idx = int(len(X) * (1 - validation_split))
         X_train, X_val = X[:split_idx], X[split_idx:]
         y_train, y_val = y[:split_idx], y[split_idx:]
-        print(f"Entrenando con {len(X_train)} muestras, validando con {len(X_val)} muestras")
+        print(f"Entrenando con {len(X_train)} ejemplos, validando con {len(X_val)} ejemplos")
         for epoch in range(self.max_iter):
             total_loss = 0
             for i in range(len(X_train)):
@@ -226,21 +251,16 @@ class CreditMLP:
             self.training_loss.append(avg_loss)
             val_loss = 0
             for i in range(len(X_val)):
-                if hasattr(X_val, 'iloc'):
-                    xi = np.asarray(X_val.iloc[i]).flatten()
-                else:
-                    xi = np.asarray(X_val[i]).flatten()
-                if hasattr(y_val, 'iloc'):
-                    yi = float(np.asarray(y_val.iloc[i]).squeeze())
-                else:
-                    yi = float(np.asarray(y_val[i]).squeeze())
+                xi = np.asarray(X_val.iloc[i] if hasattr(X_val, 'iloc') else X_val[i]).flatten()
+                yi = float(y_val.iloc[i] if hasattr(y_val, 'iloc') else y_val[i])
                 y_pred_val = self.forward(xi)
                 val_loss += self.compute_loss(yi, y_pred_val)
+
             val_loss /= len(X_val)
             self.validation_loss.append(val_loss)
             if (epoch + 1) % 20 == 0:
-                print(f"Época {epoch + 1}/{self.max_iter} - Loss: {avg_loss:.4f} - Val Loss: {val_loss:.4f}")
-    
+                print(f"Época {epoch + 1}/{self.max_iter} - Pérdida entrenamiento: {avg_loss:.4f} - Pérdida validación: {val_loss:.4f}")
+
     def predict(self, X):
         """
         Predice la clase (0 o 1) para cada muestra de X.
@@ -250,14 +270,11 @@ class CreditMLP:
         # Predice la clase (0 o 1) para cada muestra
         predictions = []
         for i in range(len(X)):
-            if hasattr(X, 'iloc'):
-                xi = np.asarray(X.iloc[i]).flatten()
-            else:
-                xi = np.asarray(X[i]).flatten()
+            xi = np.asarray(X.iloc[i] if hasattr(X, 'iloc') else X[i]).flatten()
             pred = self.forward(xi)
             predictions.append(1 if pred > 0.5 else 0)
         return np.array(predictions)
-    
+
     def predict_proba(self, X):
         """
         Predice la probabilidad de la clase positiva para cada muestra de X.
@@ -267,14 +284,11 @@ class CreditMLP:
         # Predice la probabilidad de la clase positiva para cada muestra
         predictions = []
         for i in range(len(X)):
-            if hasattr(X, 'iloc'):
-                xi = np.asarray(X.iloc[i]).flatten()
-            else:
-                xi = np.asarray(X[i]).flatten()
+            xi = np.asarray(X.iloc[i] if hasattr(X, 'iloc') else X[i]).flatten()
             pred = self.forward(xi)
             predictions.append(pred)
         return np.array(predictions)
-    
+
     def get_model_summary(self):
         """
         Devuelve un resumen de la arquitectura y número de parámetros del modelo.
@@ -285,7 +299,7 @@ class CreditMLP:
         prev_size = self.input_dim
         for i, layer in enumerate(self.layers):
             output_size = len(layer.neurons)
-            params = (prev_size + 1) * output_size  # +1 por el bias
+            params = (prev_size + 1) * output_size
             total_params += params
             print(f"Capa {i+1}: {prev_size} → {output_size} neuronas ({params} parámetros)")
             prev_size = output_size
@@ -309,17 +323,17 @@ class CreditMLP:
         if feature_names is None:
             feature_names = [f'feature_{i}' for i in range(len(importances))]
         return dict(zip(feature_names, importances))
-    
+
     def plot_training_history(self):
         """
         Grafica el historial de pérdidas de entrenamiento y validación.
         """
         # Grafica el historial de pérdidas de entrenamiento y validación
         plt.figure(figsize=(10, 6))
-        plt.plot(self.training_loss, label='Training Loss', color='blue')
-        plt.plot(self.validation_loss, label='Validation Loss', color='red')
-        plt.title('Historial de Entrenamiento')
-        plt.xlabel('Época')
+        plt.plot(self.training_loss, label='Pérdida entrenamiento', color='blue')
+        plt.plot(self.validation_loss, label='Pérdida validación', color='red')
+        plt.title('Cómo mejoró la red con el entrenamiento')
+        plt.xlabel('Épocas')
         plt.ylabel('Pérdida')
         plt.legend()
         plt.grid(True)

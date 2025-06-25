@@ -1,25 +1,49 @@
 """
 Módulo para el entrenamiento del sistema de aprobación de crédito.
+
+Este módulo contiene la función principal para orquestar
+el flujo completo de entrenamiento del modelo de crédito,
+desde la carga o generación de datos, el preprocesamiento,
+hasta la configuración y entrenamiento del modelo,
+finalizando con la serialización de objetos clave para su evaluación posterior.
 """
 # Importa las clases y funciones necesarias para procesar datos, crear y entrenar el modelo
 from src.data_processing import CreditDataProcessor
 from src.model import create_model_from_config
 from src.training import CreditModelTrainer
+import pickle
 
 # Función principal que ejecuta todo el proceso de entrenamiento
 def ejecutar_entrenamiento(n_samples=10000, epochs=50, use_kaggle_data=False):
-    # 1. Procesamiento de datos
-    # Crea un procesador de datos
+    """
+    Ejecuta el proceso completo de entrenamiento del modelo de crédito.
+
+    Parámetros:
+        n_samples (int, opcional): Número de muestras a generar si no se usa el dataset de Kaggle.
+                                   Por defecto 10,000.
+        epochs (int, opcional): Número de épocas para entrenar el modelo. Por defecto 50.
+        use_kaggle_data (bool, opcional): Si es True, se carga el dataset de crédito alemán de Kaggle.
+                                          Si es False, se generan datos sintéticos. Por defecto False.
+
+    Retorna:
+        model: Modelo entrenado.
+        processor: Objeto procesador de datos utilizado.
+        X_test (np.array o pd.DataFrame): Datos de prueba para evaluación.
+        y_test (np.array o pd.Series): Etiquetas de prueba.
+        feature_names (list): Lista de nombres de características usadas por el modelo.
+    """
+    # 1. Inicializar procesador y cargar/generar datos
     processor = CreditDataProcessor()
     # Si se indica, carga datos reales; si no, genera datos sintéticos
     if use_kaggle_data:
         data = processor.load_german_credit_data()
     else:
         data = processor.generate_sample_data(n_samples=n_samples)
-    # Prepara los datos: los divide en entrenamiento y prueba (test_size=0.4 significa 40% para prueba)
+    
+    # 2. Preparar datos (normalización, separación en train/test)
     X_train, X_test, y_train, y_test, feature_names = processor.prepare_data(data, test_size=0.4)
-    # 2. Entrenamiento
-    # Define la configuración del modelo y del entrenamiento
+    
+    # 3. Configuración del modelo y parámetros de entrenamiento
     config = {
         'model': {
             'type': 'basic',  # Tipo de modelo
@@ -41,7 +65,8 @@ def ejecutar_entrenamiento(n_samples=10000, epochs=50, use_kaggle_data=False):
             'random_state': 42          # Semilla para reproducibilidad
         }
     }
-    # Crea el entrenador con la configuración
+    
+    # 4. Crear entrenador y ejecutar entrenamiento
     trainer = CreditModelTrainer(config)
     # Entrena el modelo con los datos de entrenamiento
     trainer.train_model(X_train, y_train)

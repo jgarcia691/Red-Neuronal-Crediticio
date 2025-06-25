@@ -22,6 +22,15 @@ warnings.filterwarnings('ignore')
 class CreditModelEvaluator:
     """
     Clase para evaluar y analizar el modelo de clasificación de crédito.
+
+    Proporciona métodos para:
+    - Establecer datos de prueba.
+    - Obtener predicciones con un umbral configurable.
+    - Calcular métricas comprehensivas (precisión, recall, F1, AUC, etc.).
+    - Graficar resultados de evaluación.
+    - Analizar la importancia de características mediante diferentes métodos (SHAP, permutación, gradientes).
+    - Analizar sesgos y justicia en subgrupos definidos por características sensibles.
+    - Generar reportes de explicabilidad basados en LIME para muestras individuales.
     """
     
     def __init__(self, model, processor=None):
@@ -88,6 +97,7 @@ class CreditModelEvaluator:
             'advanced': {
                 'roc_auc': roc_auc,
                 'pr_auc': pr_auc,
+                'sensitivity': recall,
                 'sensitivity': recall,
                 'false_positive_rate': fpr,
                 'true_positive_rate': tpr,
